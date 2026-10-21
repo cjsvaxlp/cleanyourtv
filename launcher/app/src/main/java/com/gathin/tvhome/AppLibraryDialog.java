@@ -98,7 +98,7 @@ final class AppLibraryDialog {
         GradientDrawable bg = new GradientDrawable();
         bg.setColor(color);
         bg.setCornerRadius(dp(radius));
-        bg.setStroke(dp(1), 0x18FFFFFF);
+        bg.setStroke(dp(1), GlassPalette.light() ? 0x28708090 : 0x18FFFFFF);
         return bg;
     }
 
@@ -120,7 +120,7 @@ final class AppLibraryDialog {
         panel.setLayoutDirection(rtl ? View.LAYOUT_DIRECTION_RTL : View.LAYOUT_DIRECTION_LTR);
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setPadding(dp(12), dp(8), dp(12), dp(12));
-        panel.setBackgroundResource(R.drawable.glass_panel);
+        panel.setBackground(surface(GlassPalette.light() ? 0xF2EDF2F8 : 0xF2242C39, 22));
         View decor = activity.getWindow().getDecorView();
         catalogWidth = Math.min(dp(800), Math.max(dp(200), decor.getWidth() - dp(64)));
         int width = catalogWidth;
@@ -141,7 +141,7 @@ final class AppLibraryDialog {
         if (container.getLayoutParams() instanceof WindowManager.LayoutParams) {
             WindowManager.LayoutParams params = (WindowManager.LayoutParams) container.getLayoutParams();
             params.flags |= WindowManager.LayoutParams.FLAG_DIM_BEHIND;
-            params.dimAmount = 0.55f;
+            params.dimAmount = GlassPalette.light() ? 0.20f : 0.55f;
             activity.getWindowManager().updateViewLayout(container, params);
         }
         panel.setAlpha(0f);
@@ -354,6 +354,7 @@ final class AppLibraryDialog {
         String pkg = selectedPackage;
         if (spring != null) spring.cancel();
         View menuPanel = activity.getLayoutInflater().inflate(R.layout.popup_inputs, panel, false);
+        GlassPalette.popup(menuPanel);
         LinearLayout rows = menuPanel.findViewById(R.id.rows);
         PopupWindow menu = new PopupWindow(menuPanel, dp(220), ViewGroup.LayoutParams.WRAP_CONTENT, true);
         actionPopup = menu;
@@ -365,6 +366,7 @@ final class AppLibraryDialog {
             if (actionPopup == menu) actionPopup = null;
             restoreCardFocus();
         });
+        addAction(rows, R.string.pin_to_dock, () -> { close(); DockPicker.show(activity,pkg,activity::recreate); });
         addAction(rows, R.string.library_open, () -> open(app));
         boolean home = onHome.test(pkg);
         addAction(rows, home ? R.string.library_remove_shortcut : R.string.library_add_home,
@@ -408,6 +410,9 @@ final class AppLibraryDialog {
         View row = activity.getLayoutInflater().inflate(R.layout.item_input, rows, false);
         ((TextView) row.findViewById(R.id.title)).setText(label);
         row.setFocusableInTouchMode(true);
+        GlassPalette.pill((TextView)row.findViewById(R.id.title));
+        row.setBackground(GlassPalette.material(density,12,false));
+        row.setOnFocusChangeListener((v,focused)->v.setBackground(GlassPalette.material(density,12,focused)));
         row.findViewById(R.id.icon).setVisibility(View.GONE);
         row.findViewById(R.id.dot).setVisibility(View.GONE);
         row.findViewById(R.id.status).setVisibility(View.GONE);
@@ -425,7 +430,7 @@ final class AppLibraryDialog {
         TextView view = new TextView(activity);
         view.setText(value);
         view.setTextSize(size);
-        view.setTextColor(color);
+        view.setTextColor(GlassPalette.light() ? ((color >>> 24) < 220 ? 0xFF566272 : 0xFF17202C) : color);
         view.setTypeface(activity.getResources().getFont(R.font.outfit_medium));
         view.setLetterSpacing(0.01f);
         view.setIncludeFontPadding(false);
@@ -484,7 +489,7 @@ final class AppLibraryDialog {
             boolean recent = LibraryApps.recent(installTimes.getOrDefault(pkg, 0L), catalogTime);
             status.setText(home ? R.string.library_on_home : recent ? R.string.library_recent : R.string.library_add_home);
             status.setVisibility(View.VISIBLE);
-            holder.itemView.setBackground(surface(home ? 0x1475BBA4 : 0x0CFFFFFF, 18));
+            holder.itemView.setBackground(surface(GlassPalette.light() ? (home ? 0x18287865 : 0x0C17202C) : (home ? 0x1475BBA4 : 0x0CFFFFFF), 18));
             View check = holder.itemView.findViewById(R.id.dot);
             check.getLayoutParams().width = dp(home ? 18 : 8);
             check.getLayoutParams().height = dp(home ? 18 : 8);

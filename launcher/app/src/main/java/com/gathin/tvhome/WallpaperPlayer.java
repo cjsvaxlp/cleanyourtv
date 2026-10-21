@@ -22,15 +22,13 @@ import java.util.concurrent.Executors;
 final class WallpaperPlayer {
     private final FrameLayout root;
     private final ImageView image;
+    private android.widget.TextView credit;
     private final List<File> files;
     private final long interval;
-    private final String order;
     private final SharedPreferences preferences;
     private final ExecutorService decoder = Executors.newSingleThreadExecutor();
     private final Random random = new Random();
     private final int width;
-    /** config wallpaper_true_color: ARGB_8888 instead of RGB_565. */
-    private final Bitmap.Config bitmapConfig;
     private final int height;
     private boolean active;
     private boolean closed;
@@ -41,16 +39,7 @@ final class WallpaperPlayer {
         this.root = root;
         files = new ArrayList<>(config.wallpapers);
         interval = config.wallpaperRotationMinutes * 60_000L;
-        bitmapConfig = config.wallpaperTrueColor ? Bitmap.Config.ARGB_8888 : Bitmap.Config.RGB_565;
-        order = config.wallpaperOrder;
         preferences = context.getSharedPreferences("wallpaper_rotation", Context.MODE_PRIVATE);
-        // Playback state belongs to one collection. Changing the collection starts from its first
-        // picture instead of resuming a filename that belonged to the previous one.
-        String collection = collectionKey(files);
-        if (!collection.equals(preferences.getString("collection", ""))) {
-            preferences.edit().putString("collection", collection)
-                    .remove("image").remove("changed").apply();
-        }
         DisplayMetrics metrics = context.getResources().getDisplayMetrics();
         width = metrics.widthPixels;
         height = metrics.heightPixels;
@@ -64,10 +53,20 @@ final class WallpaperPlayer {
             if (config.wallpaperDim > 0) {
                 View shade = new View(context);
                 shade.setBackgroundColor((config.wallpaperDim * 255 / 100) << 24);
+                if (GlassPalette.light()) shade.setVisibility(View.GONE);
                 shade.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
                 root.addView(shade, 1, new FrameLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
             }
+            credit = new android.widget.TextView(context);
+            credit.setTextSize(10);
+            credit.setTextColor(android.graphics.Color.WHITE);
+            credit.setShadowLayer(3, 0, 1, android.graphics.Color.BLACK);
+            FrameLayout.LayoutParams cp = new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+                    android.view.Gravity.BOTTOM | android.view.Gravity.RIGHT);
+            cp.setMargins(12, 12, 18, 10);
+            root.addView(credit, cp);
             showFirst();
         }
     }
@@ -79,13 +78,15 @@ final class WallpaperPlayer {
      */
     private void showFirst() {
         String previous = preferences.getString("image", "");
-        File first = WallpaperRotation.find(files, previous);
-        if (first == null) first = WallpaperRotation.pick(files, previous, order, random);
+        File first = scheduled();
+        if (first == null) first = WallpaperRotation.find(files, previous);
+        if (first == null) first = WallpaperRotation.pick(files, previous, random);
         while (first != null) {
             Bitmap bitmap = decode(first);
             if (bitmap != null) {
                 image.setImageBitmap(bitmap);
                 displayed = first.getName();
+                updateCredit();
                 if (!displayed.equals(previous)) {
                     preferences.edit().putString("image", displayed)
                             .putLong("changed", System.currentTimeMillis()).apply();
@@ -93,7 +94,7 @@ final class WallpaperPlayer {
                 return;
             }
             files.remove(first);   // unreadable or over 4K: try another, or keep the plain colour
-            first = WallpaperRotation.pick(files, previous, order, random);
+            first = WallpaperRotation.pick(files, previous, random);
         }
     }
 
@@ -115,10 +116,11 @@ final class WallpaperPlayer {
     void update() {
         if (!active || closed || loading || files.isEmpty()) return;
         String previous = preferences.getString("image", "");
-        File selected = WallpaperRotation.find(files, previous);
+        File scheduled = scheduled();
+        File selected = scheduled != null ? scheduled : WallpaperRotation.find(files, previous);
         long changed = preferences.getLong("changed", 0);
-        if (selected == null || WallpaperRotation.due(changed, System.currentTimeMillis(), interval)) {
-            selected = WallpaperRotation.pick(files, previous, order, random);
+        if (scheduled == null && (selected == null || WallpaperRotation.due(changed, System.currentTimeMillis(), interval))) {
+            selected = WallpaperRotation.pick(files, previous, random);
         }
         if (selected == null || selected.getName().equals(displayed)) return;
         File next = selected;
@@ -139,6 +141,7 @@ final class WallpaperPlayer {
                 }
                 image.setImageBitmap(bitmap);
                 displayed = next.getName();
+                updateCredit();
                 if (!displayed.equals(previous) || changed == 0) {
                     preferences.edit().putString("image", displayed)
                             .putLong("changed", System.currentTimeMillis()).apply();
@@ -147,11 +150,22 @@ final class WallpaperPlayer {
         });
     }
 
-    /** Names plus sizes: enough to notice a different collection without hashing every image. */
-    private static String collectionKey(List<File> images) {
-        StringBuilder key = new StringBuilder();
-        for (File file : images) key.append(file.getName()).append(':').append(file.length()).append(';');
-        return key.toString();
+    private File scheduled() {
+        if (GlassPalette.preview != null) return WallpaperRotation.find(files, GlassPalette.preview ? "hk-day.png" : "hk-night.png");
+        String[] names = {"hk-dawn.png", "hk-day.png", "hk-dusk.png", "hk-night.png"};
+        for (String name : names) if (WallpaperRotation.find(files, name) == null) return null;
+        File photo = WallpaperRotation.find(files, HongKongWallpaper.photoAt(System.currentTimeMillis()));
+        return photo != null ? photo : WallpaperRotation.find(files, HongKongWallpaper.at(System.currentTimeMillis()));
+    }
+
+    private void updateCredit() {
+        if (credit == null) return;
+        String text = "";
+        if (displayed.equals("hk-day-kennedy.jpg")) text = "坚尼地城 · Wikipedia user Prosperity Horizons · CC BY-SA 4.0";
+        if (displayed.equals("hk-day-disney.jpg")) text = "香港迪士尼 · NNNH · CC BY-SA 4.0";
+        if (displayed.equals("hk-night-peak.jpg")) text = "太平山顶 · Base64 · CC BY-SA 3.0";
+        credit.setText(text);
+        credit.setVisibility(text.isEmpty() ? View.GONE : View.VISIBLE);
     }
 
     private Bitmap decode(File file) {
@@ -171,7 +185,7 @@ final class WallpaperPlayer {
                 options.inDensity = scale[0];
                 options.inTargetDensity = scale[1];
             }
-            options.inPreferredConfig = bitmapConfig;
+            options.inPreferredConfig = Bitmap.Config.RGB_565;
             return BitmapFactory.decodeFile(file.getPath(), options);
         } catch (Exception | OutOfMemoryError failure) {
             return null;

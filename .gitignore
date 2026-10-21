@@ -1,16 +1,57 @@
-tools/venv/
-tools/adbkey/
-__pycache__/
-launcher/.gradle/
-launcher/build/
-launcher/app/build/
-launcher/local.properties
-# your own TV's dumps (serial, android_id, device names) stay local
-backup/
-.DS_Store
+# Gradle & Build outputs
+.gradle/
+**/build/
+build/
+local.properties
+**/local.properties
 
-# Generated install bundles and JVM crash reports stay out of contributions.
+# Android & Build Artifacts
 *.apk
 *.aab
-launcher/hs_err_pid*.log
-launcher/replay_pid*.log
+*.ap_
+*.dex
+*.class
+captures/
+.navigation/
+
+# IDE & Editor files
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.project
+.classpath
+.settings/
+
+# Python & Environment
+__pycache__/
+*.py[cod]
+*$py.class
+tools/venv/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs & Crash reports
+*.log
+hs_err_pid*.log
+replay_pid*.log
+
+# Sensitive / Local dumps & credentials
+tools/adbkey/
+# your own TV's dumps (serial, android_id, device names) stay local
+backup/
+*.keystore
+*.jks

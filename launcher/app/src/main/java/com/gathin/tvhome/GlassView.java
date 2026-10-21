@@ -25,14 +25,14 @@ public class GlassView extends View {
     /** Glow colour as 0xRRGGBB: white normally, a festival's accent (diya gold) while a festive skin is on. */
     private int glowRgb = 0xFFFFFF;
     /** Glow strength: the white glow stays faint, a coloured one needs more alpha to read as warm light. */
-    private int glowAlpha = 0x30;
+    private int glowAlpha = 0x0C;
 
     public GlassView(Context context, AttributeSet attrs) {
         super(context, attrs);
         density = getResources().getDisplayMetrics().density;
         radius = 20f * density;
         rim.setStyle(Paint.Style.STROKE);
-        rim.setStrokeWidth(1.5f * density);
+        rim.setStrokeWidth(1.0f * density);
         rim.setColor(0xCCFFFFFF);
         glow.setStyle(Paint.Style.STROKE);
         // Cache the slab as a texture. The spring only changes translation, so the GPU can
@@ -45,11 +45,11 @@ public class GlassView extends View {
     void setAccent(int argb) {
         if (argb == 0) {
             glowRgb = 0xFFFFFF;
-            glowAlpha = 0x30;
+            glowAlpha = 0x0C;
             rim.setColor(0xCCFFFFFF);
         } else {
             glowRgb = argb & 0xFFFFFF;
-            glowAlpha = 0x70;
+            glowAlpha = 0x24;
             // The rim is the accent lifted towards white, so the edge still reads as glass, not paint.
             int r = (((glowRgb >> 16) & 0xFF) + 255 * 2) / 3, g = (((glowRgb >> 8) & 0xFF) + 255 * 2) / 3,
                     b = ((glowRgb & 0xFF) + 255 * 2) / 3;
@@ -66,8 +66,8 @@ public class GlassView extends View {
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
-        fill.setShader(new LinearGradient(0, 0, 0, h, 0x3DFFFFFF, 0x12FFFFFF, Shader.TileMode.CLAMP));
-        specular.setShader(new LinearGradient(0, 0, 0, h * 0.45f, 0x66FFFFFF, 0x00FFFFFF, Shader.TileMode.CLAMP));
+        fill.setShader(new LinearGradient(0, 0, 0, h, 0x16FFFFFF, 0x06FFFFFF, Shader.TileMode.CLAMP));
+        specular.setShader(new LinearGradient(0, 0, 0, h * 0.45f, 0x24FFFFFF, 0x00FFFFFF, Shader.TileMode.CLAMP));
     }
 
     @Override
@@ -75,16 +75,12 @@ public class GlassView extends View {
         float inset = 6f * density;   // room for the glow
         rect.set(inset, inset, getWidth() - inset, getHeight() - inset);
 
-        // Outer glow: thin rings across the inset, each a little fainter, so it fades out smoothly. Three wide
-        // strokes left visible bands once the glow took an app's colour at a stronger alpha. The hardware layer
-        // caches the result, so the rings cost one draw, not one per frame of the spring.
-        int rings = 12;
-        float step = inset / rings;
-        glow.setStrokeWidth(step + 0.5f);
-        for (int i = 0; i < rings; i++) {
-            float o = step * (i + 0.5f);
-            float t = 1f - (float) i / rings;
-            glow.setColor(Math.round(glowAlpha * t) << 24 | glowRgb);
+        // Outer glow: three widening, fading strokes. The hardware layer caches the result, so
+        // they cost one draw, not one per frame of the spring.
+        for (int i = 1; i <= 1; i++) {
+            glow.setStrokeWidth(i * 2f * density);
+            glow.setColor((glowAlpha / i) << 24 | glowRgb);
+            float o = i * density;
             canvas.drawRoundRect(rect.left - o, rect.top - o, rect.right + o, rect.bottom + o, radius + o, radius + o, glow);
         }
 
