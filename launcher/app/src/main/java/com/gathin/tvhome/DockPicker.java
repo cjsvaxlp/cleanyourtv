@@ -18,12 +18,12 @@ final class DockPicker {
   if(apps.contains(pkg)){apps.remove(pkg);save(activity,apps,pkg,done);return;}
   if(apps.size()<4){apps.add(pkg);save(activity,apps,pkg,done);return;}
   String[] labels=new String[4];
-  for(int i=0;i<4;i++){String name=apps.get(i);try{name=activity.getPackageManager().getApplicationLabel(activity.getPackageManager().getApplicationInfo(name,0)).toString();}catch(Exception ignored){}labels[i]="替换位置 "+(i+1)+"："+name;}
-  GlassActions.show(activity,activity.getCurrentFocus(),"选择替换位置",labels,slot->{apps.set(slot,pkg);save(activity,apps,pkg,done);});
+  for(int i=0;i<4;i++){String name=apps.get(i);try{name=activity.getPackageManager().getApplicationLabel(activity.getPackageManager().getApplicationInfo(name,0)).toString();}catch(Exception ignored){}labels[i]="Replace slot "+(i+1)+": "+name;}
+  GlassActions.show(activity,activity.getCurrentFocus(),"Choose a slot to replace",labels,slot->{apps.set(slot,pkg);save(activity,apps,pkg,done);});
  }
  private static void save(Activity a,List<String> apps,String pkg,Runnable done){
-  if(!LibraryApps.save(a,pkg,true)){Toast.makeText(a,"无法保存应用",Toast.LENGTH_SHORT).show();return;}
-  if(!a.getSharedPreferences("dock_choices",0).edit().putString("apps",new JSONArray(apps).toString()).commit()){Toast.makeText(a,"无法保存固定栏",Toast.LENGTH_SHORT).show();return;}
-  Toast.makeText(a,apps.contains(pkg)?"已添加到固定栏":"已从固定栏移除",Toast.LENGTH_SHORT).show();done.run();
+  if(!LibraryApps.save(a,pkg,true)){Toast.makeText(a,"Unable to save app",Toast.LENGTH_SHORT).show();return;}
+  if(!a.getSharedPreferences("dock_choices",0).edit().putString("apps",new JSONArray(apps).toString()).commit()){Toast.makeText(a,"Unable to save dock",Toast.LENGTH_SHORT).show();return;}
+  Toast.makeText(a,apps.contains(pkg)?"Added to dock":"Removed from dock",Toast.LENGTH_SHORT).show();done.run();
  }
 }

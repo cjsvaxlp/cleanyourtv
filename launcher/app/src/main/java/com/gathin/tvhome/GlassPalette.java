@@ -17,11 +17,11 @@ final class GlassPalette {
     static void choose(android.app.Activity activity,Runnable changed) {
         String[] values={"dark","light","auto"};
         int selected=java.util.Arrays.asList(values).indexOf(mode);
-        new android.app.AlertDialog.Builder(activity).setTitle("主题颜色")
-            .setSingleChoiceItems(new String[]{"深色","浅色","自动（跟随时间）"},selected,(dialog,which)->{
+        new android.app.AlertDialog.Builder(activity).setTitle("Appearance")
+            .setSingleChoiceItems(new String[]{"Dark","Light","Auto (time of day)"},selected,(dialog,which)->{
                 activity.getSharedPreferences("appearance",0).edit().putString("mode",values[which]).apply();
                 configure(activity);dialog.dismiss();changed.run();
-            }).setNegativeButton("取消",null).show();
+            }).setNegativeButton("Cancel",null).show();
     }
     static boolean light() {
         if (preview != null) return preview;
@@ -34,12 +34,13 @@ final class GlassPalette {
     static int text() { return light() ? 0xFF17202C : 0xFFF5F7FC; }
     static GradientDrawable material(float density, float radius, boolean focused) {
         boolean light = light();
-        int[] colors = light ? new int[]{focused ? 0x70FFFFFF : 0x40FFFFFF, 0x20EEF4FF}
-                : new int[]{focused ? 0x995F6B82 : 0x88434C60, 0x66212B3C};
-        if (focused) colors = light ? new int[]{0x40575C63, 0x30484D54} : new int[]{0xAA252A32, 0x88202730};
+        // Same quiet, translucent default as the app-library button.
+        int[] colors = focused
+                ? (light ? new int[]{0x40575C63,0x30484D54} : new int[]{0x663C4654,0x44202730})
+                : new int[]{0x2EFFFFFF,0x14FFFFFF};
         GradientDrawable d = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, colors);
         d.setCornerRadius(radius * density);
-        d.setStroke(Math.max(1, (int)density), light ? 0x90FFFFFF : 0x50FFFFFF);
+        d.setStroke(Math.max(1, (int)density), 0x38FFFFFF);
         return d;
     }
     static void pill(TextView view) {

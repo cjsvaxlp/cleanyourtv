@@ -1,40 +1,9 @@
-# 壁纸时间算法
+# 当前壁纸规则（2026-10-22）
 
-## 用户目标
+Asia/Hong_Kong；浅色主题与原白天时间表不变。夜景取实际可用文件名以 hk-night 或 dark- 开头的图片，按文件名字典序排序，N为张数；19:00至00:00共300分钟，index=floor((minute-1140)*N/300)。两张图为19:00–21:30与21:30–00:00；坏图剔除后重新计算，空组显示纯深色背景。
 
-时区 Asia/Hong_Kong；默认浅色06:00–19:00，深色19:00–次日06:00。以分钟计算，文件日夜分组并按文件名字典序排列。未来采用 light-/dark- 前缀时应同时处理旧文件兼容和迁移，不能只改说明。
+00:00–06:00无壁纸，清除上一张照片并显示纯深色背景；跨午夜的异步解码结果也不能把照片重新显示。06:00恢复原白天规则。显式 preview_theme 参数用于人工日夜预览，允许绕过实际时段；预览结束必须清除参数。
 
-```text
-M = hour*60 + minute
-L = 360; D = 1140
-mod(x) = (x%1440+1440)%1440
-TL = mod(D-L); TD = 1440-TL
-isLight = mod(M-L) < TL
-S = isLight ? L : D
-T = isLight ? TL : TD
-N = 当前主题可用图片数
-E = mod(M-S)
-index = min(N-1, floor(E*N/T))
-```
+白天时间表：06:00–10:00 hk-dawn.png；10:00–12:20 hk-day.png；12:20–14:40 hk-day-kennedy.jpg；14:40–17:00 hk-day-disney.jpg；17:00–19:00 hk-dusk.png。不改成全部日景图均分。
 
-N=1 整段一张；N=0 使用纯背景，不借用另一组。损坏图片应剔除后重算。第 i 张起点为 S+ceil(i*T/N)，不要先将T/N取整再累加。夜间必须跨午夜计算。5张日景各156分钟，2张夜景各330分钟。每分钟检查只用于切换边界，不代表每分钟换图。
-
-手动选择深浅主题与当前钟点不匹配时，必须明确图片分组与时段进度规则后实现；目前不要擅自改已有个人时间表。
-
-## 当前个人源码实际行为
-
-`HongKongWallpaper.java` 固定文件名及数组：
-
-| 时段 | 图片 |
-|---|---|
-| 06:00–10:00 | hk-dawn.png |
-| 10:00–12:20 | hk-day.png |
-| 12:20–14:40 | hk-day-kennedy.jpg |
-| 14:40–17:00 | hk-day-disney.jpg |
-| 17:00–19:00 | hk-dusk.png |
-| 19:00–00:30 | hk-night.png |
-| 00:30–06:00 | hk-night-peak.jpg |
-
-主题由 `GlassPalette.java` 控制，壁纸由 `WallpaperPlayer.java` 调用上述时间表；当前手动主题与壁纸分组不是同一选择器。`schedule.properties`、`ThemeSchedule.java` 属于旧分享版，不存在于当前个人项目的算法中。
-
-电视图片位于 `/sdcard/Android/data/com.gathin.tvhome/files/wallpapers/`。新增摄影作品时核对来源许可及 `WallpaperPlayer` 的署名；不要把现有署名误用于新图片。
+首页不显示照片信息、署名或地点；来源与许可保留在配套文件。照片外置于 files/wallpapers，不打进APK。测试包括午夜/06:00/19:00边界、N=0/1/2/3/7/11与白天时间表。
